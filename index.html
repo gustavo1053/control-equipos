@@ -877,13 +877,19 @@
   }
 
   onSnapshot(collection(db, COLLECTION), (snap) => {
+    // Puede haber más de un documento para el mismo agente+turno (restos de
+    // un esquema viejo con id sin turno, ej. "age_21" además de
+    // "age_21_mañana"); nos quedamos con el más reciente.
     cachedData = {};
     snap.forEach(d => {
       const data = d.data();
       const agente = data.agente;
       const turno = data.turno;
       if (!cachedData[agente]) cachedData[agente] = {};
-      cachedData[agente][turno] = data;
+      const anterior = cachedData[agente][turno];
+      const tsActual = data.ultimaActualizacion ? data.ultimaActualizacion.toMillis() : 0;
+      const tsAnterior = anterior && anterior.ultimaActualizacion ? anterior.ultimaActualizacion.toMillis() : 0;
+      if (!anterior || tsActual >= tsAnterior) cachedData[agente][turno] = data;
     });
 
     renderAgentGroup(agentListTitulares, AGENTES_TITULARES);
