@@ -276,6 +276,14 @@
     padding: 1px 6px;
     font-weight: 500;
   }
+  .agent-row .info .address-tag{
+    font-size: 0.66rem;
+    color: var(--accent);
+    border: 1px solid var(--accent-dim);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-weight: 500;
+  }
   .agent-row .info .meta{
     font-size: 0.8rem;
     color: var(--text-dim);
@@ -382,7 +390,8 @@
 
     <div class="field">
       <label for="inpNombre">Nombre de operador</label>
-      <input type="text" id="inpNombre" placeholder="Ej: Juan Pérez">
+      <input type="text" id="inpNombre" placeholder="Ej: Andrea" list="listaNombresPersonal" autocomplete="off">
+      <datalist id="listaNombresPersonal"></datalist>
     </div>
 
     <div class="field">
@@ -478,6 +487,55 @@
   const AGENTES_FRANCO = ["FLOR","LUDMILA","SOFIA","VALU"];
   const AGENTES = [...AGENTES_TITULARES, ...AGENTES_FRANCO];
   const CUENTAS = ["Personal Pay","Claro Pay","AstroPay","Prex","NX","Lemon","Uala","Mercado Pago","ARQ","Buepp","Belo"];
+
+  // Misma tabla "Direcciones del Personal" que index.html / retiros_v2.html (DIRS_DEF) del repo retiros-planilla.
+  const DIRS_DEF = [
+    {nom:'Andrea', dir:'Charlone 2167 (Villa Ortuza)'},
+    {nom:'Meli',   dir:'Wagner 959 (Hurlingam)'},
+    {nom:'Tammi',  dir:'San Javier 2060 (Pablo Podestá)'},
+    {nom:'Lourdes',dir:'Belgrano 107 (Burzaco)'},
+    {nom:'Ingrid', dir:'Vicente López y Planes 8471 (Podestá)'},
+    {nom:'Nico',   dir:'Juan B. Alberdi 5691 (Caseros)'},
+    {nom:'Nao',    dir:'—'}, // alias: Milena (AGE 21, turno mañana)
+    {nom:'Milena', dir:'Wenceslao de Tata 4741 (Caseros)'},
+    {nom:'Jhona',  dir:'Pichincha 4780 (Villa Coronel)'},
+    {nom:'Majo',   dir:'Ríos 1038 (Glew)'},
+    {nom:'Mili',   dir:'J.M. Bosche 6172 (San Martín)'},
+    {nom:'Vero',   dir:'Ceferino Namuncurá 3302 (Lanús)'},
+    {nom:'Jenni',  dir:'Prov. Santa Fe 68 entre Silva y Espora'},
+    {nom:'Agus M', dir:'J.M. Bosche 6172 (San Martín)'},
+    {nom:'Maria',  dir:'Cucha Cucha 779 (Caballito)'},
+    {nom:'Anto',   dir:'López 2898'},
+    {nom:'Agus',   dir:'L. López 2700 (Claypole)'},
+    {nom:'Romi',   dir:'J. Mazzini 2853 (Hurlingam)'},
+    {nom:'Jhoa',   dir:'511 2478 (Florencio Varela)'},
+    {nom:'Cami',   dir:'Augusto Prieto 553 (Lanús)'},
+    {nom:'Thiago', dir:'L. López 2700 (Claypole)'},
+    {nom:'Mayra',  dir:'Crisantemos 5965 (San Martín)'},
+    {nom:'Rafa',   dir:'Cucha Cucha 779 (Caballito)'},
+    {nom:'Brisa',  dir:'Lacroze 2053 (Villa Lynch)'},
+    {nom:'Mile',   dir:'—'},
+    {nom:'Flor',   dir:'Juan B. Alberdi 5691 (Caseros)'},
+    {nom:'Ludmi',  dir:'Clemenceau 44 (Gerli)'},
+    {nom:'Sofi',   dir:'Pichincha 4780 (Villa Coronel)'},
+    {nom:'Guada',  dir:'Crisantemos 5965 (San Martín)'},
+  ];
+  const normalizarNombre = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const DIRECCIONES_POR_NOMBRE = {};
+  DIRS_DEF.forEach(d => { DIRECCIONES_POR_NOMBRE[normalizarNombre(d.nom)] = d.dir; });
+
+  function buscarDireccion(nombre){
+    const dir = DIRECCIONES_POR_NOMBRE[normalizarNombre(nombre)];
+    return (dir && dir !== "—") ? dir : "";
+  }
+
+  // --- Poblar datalist con los nombres de la lista maestra (evita typos al tipear) ---
+  const listaNombresPersonal = document.getElementById("listaNombresPersonal");
+  DIRS_DEF.forEach(d => {
+    const opt = document.createElement("option");
+    opt.value = d.nom;
+    listaNombresPersonal.appendChild(opt);
+  });
 
   const slug = (name) => name.toLowerCase().replace(/\s+/g, "_");
 
@@ -754,8 +812,9 @@
         ? `<div class="cuentas-tags">${nombresActivos.map(n => `<span class="tag">${n}</span>`).join("")}</div>`
         : `<div class="cuentas-tags"><span class="tag-none">Sin cuentas activas</span></div>`;
       const fechaCuentas = formatFechaCuentas(data.cuentasActualizadoEn);
+      const direccion = buscarDireccion(data.nombreAgente);
       infoHtml = `<div class="info">
-           <div class="name">${agente}</div>
+           <div class="name">${agente}${direccion ? ` <span class="address-tag">📍 ${direccion}</span>` : ""}</div>
            ${data.nombreAgente ? `<div class="meta" style="margin-top:0;">${data.nombreAgente}</div>` : ""}
            <div class="meta"><span class="n-cuentas">${nombresActivos.length}/${CUENTAS.length}</span> cuentas · ${data.marcaNotebook}</div>
            ${tagsHtml}
