@@ -504,24 +504,35 @@
     {nom:'Jona',   dir:'Pichincha 4780 (Villa Coronel)'}, // alias: Jhona (AGE 21, turno tarde)
     {nom:'Majo',   dir:'Ríos 1038 (Glew)'},
     {nom:'Mili',   dir:'J.M. Bosche 6172 (San Martín)'},
+    {nom:'Milagros', dir:'J.M. Bosche 6172 (San Martín)'}, // alias: Mili (AGE 22, turno mañana)
     {nom:'Vero',   dir:'Ceferino Namuncurá 3302 (Lanús)'},
+    {nom:'Verónica', dir:'Ceferino Namuncurá 3302 (Lanús)'}, // alias: Vero (AGE 22, turno tarde)
     {nom:'Jenni',  dir:'Prov. Santa Fe 68 entre Silva y Espora'},
     {nom:'Agus M', dir:'J.M. Bosche 6172 (San Martín)'},
+    {nom:'Agustina M', dir:'J.M. Bosche 6172 (San Martín)'}, // alias: Agus M (AGE 23, turno mañana)
     {nom:'Maria',  dir:'Paysandú 939 (Caballito)'},
     {nom:'Anto',   dir:'López 2898'},
+    {nom:'Antonella', dir:'López 2898'}, // alias: Anto (AGE 23, turno noche)
     {nom:'Agus',   dir:'L. López 2700 (Claypole)'},
+    {nom:'Agustina', dir:'L. López 2700 (Claypole)'}, // alias: Agus (AGE 24, turno mañana)
     {nom:'Romi',   dir:'J. Mazzini 2853 (Hurlingam)'},
+    {nom:'Romina', dir:'J. Mazzini 2853 (Hurlingam)'}, // alias: Romi (AGE 24, turno tarde)
     {nom:'Jhoa',   dir:'511 2478 (Florencio Varela)'},
+    {nom:'JOHA',   dir:'511 2478 (Florencio Varela)'}, // alias: Jhoa (AGE 24, turno noche)
     {nom:'Cami',   dir:'Augusto Prieto 553 (Lanús)'},
+    {nom:'Camila', dir:'Augusto Prieto 553 (Lanús)'}, // alias: Cami (AGE 25, turno mañana)
     {nom:'Thiago', dir:'L. López 2700 (Claypole)'},
     {nom:'Mayra',  dir:'Crisantemos 5965 (San Martín)'},
     {nom:'Rafa',   dir:'Paysandú 939 (Caballito)'},
-    {nom:'Rafael', dir:'Paysandú 939 (Caballito)'}, // alias: Rafa (AGE 25, turno mañana)
+    {nom:'Rafael', dir:'Paysandú 939 (Caballito)'}, // alias: Rafa (Siempre Mono, turno mañana)
     {nom:'Brisa',  dir:'Lacroze 2053 (Villa Lynch)'},
-    {nom:'Mile',   dir:'—'},
+    {nom:'bri',    dir:'Lacroze 2053 (Villa Lynch)'}, // alias: Brisa (Siempre Mono, turno tarde)
+    {nom:'Mile',   dir:'Wenceslao de Tata 4741 (Caseros)'},
     {nom:'Flor',   dir:'Juan B. Alberdi 5691 (Caseros)'},
     {nom:'Ludmi',  dir:'Clemenceau 44 (Gerli)'},
+    {nom:'Ludmila',dir:'Clemenceau 44 (Gerli)'}, // alias: Ludmi
     {nom:'Sofi',   dir:'Pichincha 4780 (Villa Coronel)'},
+    {nom:'SOFIA',  dir:'Pichincha 4780 (Villa Coronel)'}, // alias: Sofi
     {nom:'Guada',  dir:'Crisantemos 5965 (San Martín)'},
     {nom:'Valu',   dir:'San Javier 2060 (Pablo Podestá)'},
   ];
@@ -866,13 +877,19 @@
   }
 
   onSnapshot(collection(db, COLLECTION), (snap) => {
+    // Puede haber más de un documento para el mismo agente+turno (restos de
+    // un esquema viejo con id sin turno, ej. "age_21" además de
+    // "age_21_mañana"); nos quedamos con el más reciente.
     cachedData = {};
     snap.forEach(d => {
       const data = d.data();
       const agente = data.agente;
       const turno = data.turno;
       if (!cachedData[agente]) cachedData[agente] = {};
-      cachedData[agente][turno] = data;
+      const anterior = cachedData[agente][turno];
+      const tsActual = data.ultimaActualizacion ? data.ultimaActualizacion.toMillis() : 0;
+      const tsAnterior = anterior && anterior.ultimaActualizacion ? anterior.ultimaActualizacion.toMillis() : 0;
+      if (!anterior || tsActual >= tsAnterior) cachedData[agente][turno] = data;
     });
 
     renderAgentGroup(agentListTitulares, AGENTES_TITULARES);
