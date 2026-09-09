@@ -492,19 +492,22 @@
   const DIRS_DEF = [
     {nom:'Andrea', dir:'Charlone 2167 (Villa Ortuza)'},
     {nom:'Meli',   dir:'Wagner 959 (Hurlingam)'},
+    {nom:'Melina', dir:'Wagner 959 (Hurlingam)'}, // alias: Meli (AGE 18, turno tarde)
     {nom:'Tammi',  dir:'San Javier 2060 (Pablo Podestá)'},
     {nom:'Lourdes',dir:'Belgrano 107 (Burzaco)'},
     {nom:'Ingrid', dir:'Vicente López y Planes 8471 (Podestá)'},
     {nom:'Nico',   dir:'Juan B. Alberdi 5691 (Caseros)'},
+    {nom:'Niko',   dir:'Juan B. Alberdi 5691 (Caseros)'}, // alias: Nico (AGE 19, turno noche)
     {nom:'Nao',    dir:'—'}, // alias: Milena (AGE 21, turno mañana)
     {nom:'Milena', dir:'Wenceslao de Tata 4741 (Caseros)'},
     {nom:'Jhona',  dir:'Pichincha 4780 (Villa Coronel)'},
+    {nom:'Jona',   dir:'Pichincha 4780 (Villa Coronel)'}, // alias: Jhona (AGE 21, turno tarde)
     {nom:'Majo',   dir:'Ríos 1038 (Glew)'},
     {nom:'Mili',   dir:'J.M. Bosche 6172 (San Martín)'},
     {nom:'Vero',   dir:'Ceferino Namuncurá 3302 (Lanús)'},
     {nom:'Jenni',  dir:'Prov. Santa Fe 68 entre Silva y Espora'},
     {nom:'Agus M', dir:'J.M. Bosche 6172 (San Martín)'},
-    {nom:'Maria',  dir:'Cucha Cucha 779 (Caballito)'},
+    {nom:'Maria',  dir:'Paysandú 939 (Caballito)'},
     {nom:'Anto',   dir:'López 2898'},
     {nom:'Agus',   dir:'L. López 2700 (Claypole)'},
     {nom:'Romi',   dir:'J. Mazzini 2853 (Hurlingam)'},
@@ -512,13 +515,15 @@
     {nom:'Cami',   dir:'Augusto Prieto 553 (Lanús)'},
     {nom:'Thiago', dir:'L. López 2700 (Claypole)'},
     {nom:'Mayra',  dir:'Crisantemos 5965 (San Martín)'},
-    {nom:'Rafa',   dir:'Cucha Cucha 779 (Caballito)'},
+    {nom:'Rafa',   dir:'Paysandú 939 (Caballito)'},
+    {nom:'Rafael', dir:'Paysandú 939 (Caballito)'}, // alias: Rafa (AGE 25, turno mañana)
     {nom:'Brisa',  dir:'Lacroze 2053 (Villa Lynch)'},
     {nom:'Mile',   dir:'—'},
     {nom:'Flor',   dir:'Juan B. Alberdi 5691 (Caseros)'},
     {nom:'Ludmi',  dir:'Clemenceau 44 (Gerli)'},
     {nom:'Sofi',   dir:'Pichincha 4780 (Villa Coronel)'},
     {nom:'Guada',  dir:'Crisantemos 5965 (San Martín)'},
+    {nom:'Valu',   dir:'San Javier 2060 (Pablo Podestá)'},
   ];
   const normalizarNombre = (s) => (s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const DIRECCIONES_POR_NOMBRE = {};
