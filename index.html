@@ -545,6 +545,13 @@
     return (dir && dir !== "—") ? dir : "";
   }
 
+  // Casos donde el nombre de pila solo no alcanza para distinguir a la
+  // persona (ej. dos "Agustina" en agentes distintos): se resuelve por
+  // agente+turno en vez de por el texto que haya tipeado el operador.
+  const DIRECCION_OVERRIDE_POR_SLOT = {
+    'AGE 23|Mañana': 'J.M. Bosche 6172 (San Martín)',
+  };
+
   // --- Poblar datalist con los nombres de la lista maestra (evita typos al tipear) ---
   const listaNombresPersonal = document.getElementById("listaNombresPersonal");
   DIRS_DEF.forEach(d => {
@@ -828,7 +835,7 @@
         ? `<div class="cuentas-tags">${nombresActivos.map(n => `<span class="tag">${n}</span>`).join("")}</div>`
         : `<div class="cuentas-tags"><span class="tag-none">Sin cuentas activas</span></div>`;
       const fechaCuentas = formatFechaCuentas(data.cuentasActualizadoEn);
-      const direccion = buscarDireccion(data.nombreAgente);
+      const direccion = DIRECCION_OVERRIDE_POR_SLOT[`${agente}|${turno}`] || buscarDireccion(data.nombreAgente);
       infoHtml = `<div class="info">
            <div class="name">${agente}${direccion ? ` <span class="address-tag">📍 ${direccion}</span>` : ""}</div>
            ${data.nombreAgente ? `<div class="meta" style="margin-top:0;">${data.nombreAgente}</div>` : ""}
