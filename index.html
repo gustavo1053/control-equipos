@@ -1030,14 +1030,17 @@
 
     renderAgentGroup(agentListTitulares, AGENTES_TITULARES);
     renderAgentGroup(agentListFranco, AGENTES_FRANCO);
-    // Si este dispositivo ya está identificado con un puesto, refrescamos el
+    // Si ya hay un agente elegido en el formulario (dispositivo bloqueado a
+    // su puesto, o alguien recién seleccionándose), refrescamos el
     // formulario una sola vez, en cuanto llegan los datos (la primera carga
-    // puede haber ocurrido antes de que Firestore respondiera). Después no
-    // se vuelve a pisar el formulario en cada actualización en vivo, para no
-    // perder ediciones en curso cuando cambian los datos de otro agente.
+    // puede haber ocurrido antes de que Firestore respondiera: si no se
+    // reintenta, el formulario queda vacío aunque sí haya datos guardados).
+    // Después no se vuelve a pisar el formulario en cada actualización en
+    // vivo, para no perder ediciones en curso cuando cambian los datos de
+    // otro agente.
     if (primerSnapshot) {
       primerSnapshot = false;
-      if (miPuesto() && !esAdmin()) cargarFormularioActual();
+      if (selAgente.value) cargarFormularioActual();
     }
   }, (err) => {
     agentListTitulares.innerHTML = `<div class="empty-state">Error al cargar datos: ${err.message}</div>`;
