@@ -374,15 +374,51 @@
     font-size: 0.85rem;
     padding: 20px;
   }
+
+  .admin-bar{
+    display:flex;
+    justify-content:flex-end;
+    margin-bottom: 10px;
+  }
+  .admin-btn{
+    background: var(--panel);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    padding: 7px 12px;
+    border-radius: 7px;
+    font-size: 0.76rem;
+    cursor:pointer;
+  }
+  .admin-btn.active{
+    color: var(--ok);
+    border-color: var(--ok);
+  }
+
+  .locked-note{
+    background: rgba(79,176,255,0.08);
+    border: 1px solid var(--accent-dim);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .locked-note b{ color: var(--text); }
 </style>
 </head>
 <body>
 
 <div class="wrap">
+  <div class="admin-bar">
+    <button type="button" class="admin-btn" id="btnAdminToggle">🔒 Modo administrador</button>
+  </div>
+
   <header>
     <h1>Control de Equipos</h1>
     <p>Estado de cuentas y notebook por agente</p>
   </header>
+
+  <div class="locked-note" id="lockedNote" style="display:none;"></div>
 
   <div class="card">
     <div class="field">
@@ -455,14 +491,16 @@
     <div class="status-line" id="statusLine"></div>
   </div>
 
-  <div class="section-title">Titulares</div>
-  <div class="agent-list" id="agentListTitulares">
-    <div class="empty-state">Cargando...</div>
-  </div>
+  <div id="listadoCompleto" style="display:none;">
+    <div class="section-title">Titulares</div>
+    <div class="agent-list" id="agentListTitulares">
+      <div class="empty-state">Cargando...</div>
+    </div>
 
-  <div class="section-title">Cubren francos</div>
-  <div class="agent-list" id="agentListFranco">
-    <div class="empty-state">Cargando...</div>
+    <div class="section-title">Cubren francos</div>
+    <div class="agent-list" id="agentListFranco">
+      <div class="empty-state">Cargando...</div>
+    </div>
   </div>
 </div>
 
@@ -644,6 +682,70 @@
   let modalFotos = [];
   let modalIndex = 0;
 
+  // --- Control de acceso por pantalla (no es seguridad real: los datos
+  // siguen siendo públicos vía API, esto solo oculta en la interfaz) ---
+  // El administrador ve todo. Cada agente, la primera vez que guarda un
+  // registro desde un dispositivo, queda "identificado" en ese dispositivo
+  // (localStorage) y de ahí en más solo ve/edita su propio puesto.
+  const ADMIN_PASSWORD = "200417";
+  const btnAdminToggle = document.getElementById("btnAdminToggle");
+  const lockedNote = document.getElementById("lockedNote");
+  const listadoCompleto = document.getElementById("listadoCompleto");
+
+  function esAdmin(){
+    return localStorage.getItem("admin_unlocked") === "1";
+  }
+  function miPuesto(){
+    try { return JSON.parse(localStorage.getItem("mi_puesto") || "null"); }
+    catch(e){ return null; }
+  }
+  function fijarMiPuesto(agente, turno){
+    localStorage.setItem("mi_puesto", JSON.stringify({ agente, turno }));
+  }
+
+  function aplicarModoAcceso(){
+    const admin = esAdmin();
+    const puesto = miPuesto();
+    const bloqueado = !admin && !!puesto;
+
+    listadoCompleto.style.display = admin ? "" : "none";
+
+    btnAdminToggle.textContent = admin ? "🔓 Administrador activo · Salir" : "🔒 Modo administrador";
+    btnAdminToggle.className = "admin-btn" + (admin ? " active" : "");
+
+    selAgente.disabled = bloqueado;
+    selTurno.disabled = bloqueado;
+
+    if (bloqueado) {
+      selAgente.value = puesto.agente;
+      selTurno.value = puesto.turno;
+      lockedNote.style.display = "block";
+      lockedNote.innerHTML = `Este dispositivo está identificado como <b>${puesto.agente} · ${puesto.turno}</b>. Si necesitás cambiarlo, pedile a un administrador que entre en modo administrador.`;
+    } else {
+      lockedNote.style.display = "none";
+    }
+  }
+
+  btnAdminToggle.addEventListener("click", () => {
+    if (esAdmin()) {
+      if (confirm("¿Salir del modo administrador?")) {
+        localStorage.removeItem("admin_unlocked");
+        aplicarModoAcceso();
+        cargarFormularioActual();
+      }
+      return;
+    }
+    const clave = prompt("Clave de administrador:");
+    if (clave === null) return;
+    if (clave === ADMIN_PASSWORD) {
+      localStorage.setItem("admin_unlocked", "1");
+      aplicarModoAcceso();
+      cargarFormularioActual();
+    } else if (clave !== "") {
+      alert("Clave incorrecta.");
+    }
+  });
+
   function setStatus(msg, type){
     statusLine.textContent = msg || "";
     statusLine.className = "status-line" + (type ? " " + type : "");
@@ -793,6 +895,12 @@
       await setDoc(doc(db, COLLECTION, `${slug(agente)}_${slug(turno)}`), payload, { merge: true });
       setStatus("Guardado ✓", "ok");
       cuentasStateAlCargar = { ...cuentasState };
+      // Primera vez que se guarda desde este dispositivo sin ser admin:
+      // queda identificado con este puesto y de ahí en más solo ve el suyo.
+      if (!esAdmin() && !miPuesto()) {
+        fijarMiPuesto(agente, turno);
+        aplicarModoAcceso();
+      }
     } catch(err){
       console.error(err);
       setStatus("Error al guardar: " + err.message, "err");
@@ -903,6 +1011,7 @@
     });
   }
 
+  let primerSnapshot = true;
   onSnapshot(collection(db, COLLECTION), (snap) => {
     // Puede haber más de un documento para el mismo agente+turno (restos de
     // un esquema viejo con id sin turno, ej. "age_21" además de
@@ -921,11 +1030,23 @@
 
     renderAgentGroup(agentListTitulares, AGENTES_TITULARES);
     renderAgentGroup(agentListFranco, AGENTES_FRANCO);
+    // Si este dispositivo ya está identificado con un puesto, refrescamos el
+    // formulario una sola vez, en cuanto llegan los datos (la primera carga
+    // puede haber ocurrido antes de que Firestore respondiera). Después no
+    // se vuelve a pisar el formulario en cada actualización en vivo, para no
+    // perder ediciones en curso cuando cambian los datos de otro agente.
+    if (primerSnapshot) {
+      primerSnapshot = false;
+      if (miPuesto() && !esAdmin()) cargarFormularioActual();
+    }
   }, (err) => {
     agentListTitulares.innerHTML = `<div class="empty-state">Error al cargar datos: ${err.message}</div>`;
   });
 
   modalOverlay.addEventListener("click", () => modalOverlay.classList.remove("open"));
+
+  aplicarModoAcceso();
+  cargarFormularioActual();
 </script>
 
 </body>
