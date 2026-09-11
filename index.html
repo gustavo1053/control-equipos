@@ -78,6 +78,10 @@
     outline: none;
     border-color: var(--accent-dim);
   }
+  input[readonly]{
+    color: var(--text-dim);
+    cursor: default;
+  }
 
   .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
@@ -395,6 +399,11 @@
     </div>
 
     <div class="field">
+      <label for="inpDireccion">Dirección</label>
+      <input type="text" id="inpDireccion" placeholder="Se completa según el nombre cargado" readonly>
+    </div>
+
+    <div class="field">
       <label for="selTurno">Turno</label>
       <select id="selTurno">
         <option value="Mañana">Mañana</option>
@@ -614,6 +623,7 @@
 
   const selTurno = document.getElementById("selTurno");
   const inpNombre = document.getElementById("inpNombre");
+  const inpDireccion = document.getElementById("inpDireccion");
   const inpMarca = document.getElementById("inpMarca");
   const inpFotoCamara = document.getElementById("inpFotoCamara");
   const inpFotoGaleria = document.getElementById("inpFotoGaleria");
@@ -712,6 +722,15 @@
   });
   renderFotoGrid();
 
+  // --- Dirección: misma lógica que en el listado (override de puesto+turno primero) ---
+  function actualizarInpDireccion(){
+    const agente = selAgente.value;
+    const turno = selTurno.value;
+    const override = (agente && turno) ? DIRECCION_OVERRIDE_POR_SLOT[`${agente}|${turno}`] : null;
+    inpDireccion.value = override || buscarDireccion(inpNombre.value);
+  }
+  inpNombre.addEventListener("input", actualizarInpDireccion);
+
   // --- Al elegir agente o turno, precargar el registro de ese puesto+turno ---
   let cuentasStateAlCargar = {}; // snapshot de cómo estaban las cuentas al abrir el formulario
   function cargarFormularioActual() {
@@ -732,6 +751,7 @@
     cuentasStateAlCargar = { ...cuentasState };
     renderCuentasGrid();
     renderFotoGrid();
+    actualizarInpDireccion();
     setStatus("");
   }
   selAgente.addEventListener("change", cargarFormularioActual);
