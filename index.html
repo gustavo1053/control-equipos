@@ -404,6 +404,64 @@
     margin-bottom: 16px;
   }
   .locked-note b{ color: var(--text); }
+
+  .score-list{ display:flex; flex-direction:column; gap: 8px; }
+  .score-row{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    cursor:pointer;
+  }
+  .score-row .pos{
+    width: 30px; height: 30px;
+    flex-shrink:0;
+    border-radius: 50%;
+    background: var(--panel-2);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    font-weight: 700;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .score-row.top .pos{ background: var(--warn); color:#1a1205; }
+  .score-row .body{ flex:1; min-width:0; }
+  .score-row .title{
+    font-weight: 600;
+    font-size: 0.9rem;
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+  }
+  .score-row .sub{ font-size: 0.78rem; color: var(--text-dim); margin-top: 2px; }
+  .score-row .bar{
+    height: 5px;
+    background: var(--panel-2);
+    border-radius: 3px;
+    margin-top: 7px;
+    overflow:hidden;
+  }
+  .score-row .bar > span{
+    display:block; height:100%;
+    background: var(--accent);
+    border-radius: 3px;
+  }
+  .score-row .puntaje{
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--accent);
+    flex-shrink:0;
+    text-align:right;
+  }
+  .score-row .puntaje small{
+    display:block;
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: var(--text-dim);
+  }
+  .score-hint{ font-size: 0.74rem; color: var(--text-dim); margin: -4px 2px 10px; }
 </style>
 </head>
 <body>
@@ -492,6 +550,12 @@
   </div>
 
   <div id="listadoCompleto" style="display:none;">
+    <div class="section-title">Scoring · menos cuentas activas</div>
+    <div class="score-hint">Ordenado de menor a mayor cantidad de cuentas activas. A igual cantidad, primero el que hace más tiempo no actualiza sus cuentas.</div>
+    <div class="score-list" id="scoreList">
+      <div class="empty-state">Cargando...</div>
+    </div>
+
     <div class="section-title">Titulares</div>
     <div class="agent-list" id="agentListTitulares">
       <div class="empty-state">Cargando...</div>
@@ -1012,6 +1076,52 @@
     });
   }
 
+  // --- Scoring: puestos con menos cuentas activas primero ---
+  const scoreList = document.getElementById("scoreList");
+
+  function renderScoring(){
+    const items = [];
+    AGENTES.forEach(agente => {
+      TURNOS_ORDEN.forEach(turno => {
+        const data = cachedData[agente] && cachedData[agente][turno];
+        if (!data) return;
+        const activas = data.cuentasActivas || {};
+        const n = CUENTAS.filter(c => activas[c]).length;
+        const ts = data.cuentasActualizadoEn && typeof data.cuentasActualizadoEn.toMillis === "function"
+          ? data.cuentasActualizadoEn.toMillis() : 0;
+        items.push({ agente, turno, data, n, ts });
+      });
+    });
+    items.sort((a, b) => a.n - b.n || a.ts - b.ts || a.agente.localeCompare(b.agente));
+
+    scoreList.innerHTML = "";
+    if (!items.length) {
+      scoreList.innerHTML = '<div class="empty-state">Todavía no hay registros cargados.</div>';
+      return;
+    }
+    items.forEach((it, i) => {
+      const faltan = CUENTAS.length - it.n;
+      const row = document.createElement("div");
+      row.className = "score-row" + (i < 3 ? " top" : "");
+      const fecha = formatFechaCuentas(it.data.cuentasActualizadoEn);
+      const nombre = it.data.nombreAgente ? ` · ${it.data.nombreAgente}` : "";
+      row.innerHTML = `<div class="pos">${i + 1}</div>
+        <div class="body">
+          <div class="title">${it.agente} <span class="shift-tag" style="font-size:.66rem;color:var(--text-dim);border:1px solid var(--line);border-radius:4px;padding:1px 6px;">${it.turno}</span></div>
+          <div class="sub">${it.data.nombreAgente || "—"}${fecha ? ` · actualizado ${fecha}` : ""}</div>
+          <div class="bar"><span style="width:${Math.round(it.n / CUENTAS.length * 100)}%"></span></div>
+        </div>
+        <div class="puntaje">${it.n}/${CUENTAS.length}<small>${faltan} libres</small></div>`;
+      row.addEventListener("click", () => {
+        selAgente.value = it.agente;
+        selTurno.value = it.turno;
+        cargarFormularioActual();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      scoreList.appendChild(row);
+    });
+  }
+
   let primerSnapshot = true;
   onSnapshot(collection(db, COLLECTION), (snap) => {
     // Puede haber más de un documento para el mismo agente+turno (restos de
@@ -1029,6 +1139,7 @@
       if (!anterior || tsActual >= tsAnterior) cachedData[agente][turno] = data;
     });
 
+    renderScoring();
     renderAgentGroup(agentListTitulares, AGENTES_TITULARES);
     renderAgentGroup(agentListFranco, AGENTES_FRANCO);
     // Si ya hay un agente elegido en el formulario (dispositivo bloqueado a
@@ -1044,6 +1155,7 @@
       if (selAgente.value) cargarFormularioActual();
     }
   }, (err) => {
+    scoreList.innerHTML = `<div class="empty-state">Error al cargar datos: ${err.message}</div>`;
     agentListTitulares.innerHTML = `<div class="empty-state">Error al cargar datos: ${err.message}</div>`;
   });
 
